@@ -70,7 +70,7 @@ function playerMove(cell) {
     if(checkOccupied(cell)) return; //Check if cell has piece already
     if(!validMove(cell)) return ; //Check if move is valid for , converts pieces if valid
 
-    //if(!GOD_MODE) VALID_FLAG = false; //Reset Valid Value
+    if(!GOD_MODE) VALID_FLAG = false; //Reset Valid Value
 
     let boardCoordinates = cell.id; //get the id of cell clicked
     let pieceImg = pieceSrc(reversiGame.black_turn); //return img source
