@@ -7,10 +7,6 @@ body{
     display: flex;
 }
 
-#xcoord td{
-
-}
-
 #board-container{
     padding: 0;
     border: 5px solid black;

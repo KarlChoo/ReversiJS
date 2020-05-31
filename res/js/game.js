@@ -29,8 +29,7 @@ document.querySelector("#startBtn").addEventListener("click",startGame);
 document.querySelector("#resetBtn").addEventListener("click",resetGame);
 document.querySelector("#undoBtn").addEventListener("click",undoMove);
 document.querySelector("#hintCheckbox").addEventListener("click",toggleHint);
-
-
+document.querySelector("#vsAi").addEventListener("click",toggleAI);
 
 //Starts the game
 function startGame(){
@@ -317,6 +316,7 @@ function determineWinner() {
 }
 
 function toggleHint(){
+    console.log(reversiGame);
     if(VS_AI && !reversiGame.black_turn) {
         let checkbox = document.querySelector("#hintCheckbox");
         displaySystemMessage("Can't toggle hint when it's not your turn!","danger");
@@ -332,6 +332,23 @@ function toggleHint(){
         showPlacementHints();
     }
 }
+
+function toggleAI(){
+    if(reversiGame.isOngoing){
+        let checkbox = document.querySelector("#vsAi");
+        displaySystemMessage("Can't toggle VS AI in the middle of game!","danger");
+        if(checkbox.checked) checkbox.checked = false;
+        else checkbox.checked = true;
+        return;
+    }
+    if(VS_AI){
+        VS_AI = false;
+    }else{
+
+        VS_AI = true;
+    }
+}
+
 
 function godMode(){
     if(!GOD_MODE) {
