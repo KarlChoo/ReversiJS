@@ -1,17 +1,20 @@
 let GOD_MODE = false;
+let SHOW_HINT = true;
+let VS_AI = false;
 //PIECE SRC
 const BLACK_PIECE_SRC = "res/images/blackpiece.png";
 const WHTIE_PIECE_SRC = "res/images/whitepiece.png";
 
 const BOARD_DIV = "#board"
-const STARTING_PIECES = ["D4","E4","E5","D5"]; //Coordinates for starting piece
+const STARTING_PIECES = ["E4","D4","D5","E5"]; //Coordinates for starting piece
+//const STARTING_PIECES = ["D4","E4","E5","D5"]
 const PLAYERS = ["black","white"];
 const GAMELOG_ID = "#gameLog";
 
+let validMovesInfo = [];
 
 //GAME_INFO
 let reversiGame = {
-    "boardDiv" : "#board",
     "isOngoing" : false,
     "hasEnded" : false,
     "black_turn" : true,
@@ -25,6 +28,9 @@ let reversiGame = {
 document.querySelector("#startBtn").addEventListener("click",startGame);
 document.querySelector("#resetBtn").addEventListener("click",resetGame);
 document.querySelector("#undoBtn").addEventListener("click",undoMove);
+document.querySelector("#hintCheckbox").addEventListener("click",toggleHint);
+
+
 
 //Starts the game
 function startGame(){
@@ -41,6 +47,8 @@ function startGame(){
     initalizeBoard(reversiGame.black_turn);
     displayPlayerTurn();
     updateScoreboard();
+    validMovesInfo = calculateValidMoves();
+    if(SHOW_HINT) showPlacementHints();
 }
 
 //Initialize the starting pieces
@@ -54,6 +62,11 @@ function initalizeBoard(player_turn){
 
 //function when player makes a move
 function playerMove(cell) {
+    if(VS_AI && !reversiGame.black_turn){
+        displaySystemMessage("It is not your turn","danger");
+        return;
+    }
+
     if(reversiGame.hasEnded) {
         displaySystemMessage("Game has ended! Please reset the game","danger");
         return;
@@ -65,35 +78,71 @@ function playerMove(cell) {
         return;
     }
 
-    //showPlacementHints();
+    if(!checkValid(cell)) return ; //Check if move is valid for , converts pieces if valid
 
-    if(checkOccupied(cell)) return; //Check if cell has piece already
-    if(!validMove(cell)) return ; //Check if move is valid for , converts pieces if valid
+    //if(!GOD_MODE) VALID_FLAG = false; //Reset Valid Value
 
-    if(!GOD_MODE) VALID_FLAG = false; //Reset Valid Value
-
+    removePlacementHints(); //remove all hints
     let boardCoordinates = cell.id; //get the id of cell clicked
     let pieceImg = pieceSrc(reversiGame.black_turn); //return img source
     generatePiece(boardCoordinates,pieceImg); //generate piece image
-    //convertLines();
+    let convLines = getConvertLines(boardCoordinates);
+    convertLines(convLines);
 
 
-    logMove(boardCoordinates,reversiGame.black_turn,CONVERTED_PIECES_COORDS); //logs the players move
-    updateScore(CONVERTED_PIECES_COORDS.length); //update player's score
+    logMove(boardCoordinates,reversiGame.black_turn,convLines); //logs the players move
+    updateScore(convLines.length); //update player's score
     updateScoreboard(); //update score display
 
-    CONVERTED_PIECES_COORDS = [] //remove last moves converted piece coords
+    //console.log(reversiGame.moveLog);
 
     reversiGame.black_turn = !reversiGame.black_turn; //switch players turn
     displayPlayerTurn();
     reversiGame.emptySpace--; //reduce empty space count
 
+
+
     //set game to not isOngoing when no more empty space
     if(reversiGame.emptySpace === 0) {
         reversiGame.isOngoing = false;
-        reversiGame.hasEnded = true;
         determineWinner();
+        return;
     }
+
+    validMovesInfo = calculateValidMoves(); //calculate valid moves
+    //console.log(validMovesInfo);
+    if(SHOW_HINT && !VS_AI) showPlacementHints(); //Display hints for the user
+
+    if(validMovesInfo.validMoves.length === 0 && reversiGame.isOngoing){
+        let color;
+        if (reversiGame.black_turn) color = PLAYERS[0];
+        else color = PLAYERS[1];
+
+        color = color.charAt(0).toUpperCase() + color.slice(1);
+
+        reversiGame.black_turn = !reversiGame.black_turn;
+        let oppositeValidMoves = calculateValidMoves();
+
+        if(oppositeValidMoves.validMoves.length > 0){
+            displaySystemMessage(`${color} has no possible moves! Passing turn to opposite color.`,"warning");
+            displayPlayerTurn();
+            validMovesInfo = calculateValidMoves();
+            if(SHOW_HINT) showPlacementHints();
+        }else{
+            displaySystemMessage(`Both players have no possible moves! Game has ended.`,"warning");
+            determineWinner();
+            return;
+        }
+    }
+
+    //if(VS_AI) moveAI(); //AI moves
+}
+
+function checkValid(cell) {
+    for (let i = 0; i < validMovesInfo.validMoves.length; i++) {
+        if(validMovesInfo.validMoves[i].coords === cell.id) return true;
+    }
+    return false;
 }
 
 //Returns image source
@@ -143,9 +192,9 @@ function resetGame() {
         return;
     }
 
-    let allCells = document.querySelector(reversiGame.boardDiv).querySelectorAll("img");
-    allCells.forEach((cells) => {
-        cells.remove();
+    let allCellsImage = document.querySelector(BOARD_DIV).querySelectorAll("img");
+    allCellsImage.forEach((cellImage) => {
+        cellImage.remove();
     });
 
     let allMoves = document.querySelector(GAMELOG_ID).querySelectorAll("option");
@@ -171,6 +220,7 @@ function resetGameState() {
 
 //Undo a move made
 function undoMove() {
+    if(reversiGame.hasEnded) return;
     if(!reversiGame.isOngoing) return; //Check if game is going on
     if(reversiGame.moveLog.length == 0) return; //Check if there is a previous move
     let lastMove = reversiGame.moveLog.pop(); //Return the last move made
@@ -183,17 +233,21 @@ function undoMove() {
     document.querySelector(GAMELOG_ID).removeChild(movesArr[movesArr.length-1]);
     document.querySelector(GAMELOG_ID).selectedIndex = document.querySelector(GAMELOG_ID).length - 1;
 
-    undoPieces(lastMove.convertedPieces);
+    undoPieces(lastMove);
     reversiGame.emptySpace++;
+
+    removePlacementHints();
+    validMovesInfo = calculateValidMoves(); //calculate valid moves
+    showPlacementHints(); //Display hints for the user
 }
 
-function undoPieces(convertedPieces){
-    for (let i = 0; i < convertedPieces.length; i++) {
-        let cell = document.querySelector(`#${convertedPieces[i]}`);
+function undoPieces(lastMove){
+    for (let i = 0; i < lastMove.convertedPieces.length; i++) {
+        let cell = document.querySelector(`#${lastMove.convertedPieces[i]}`);
         let image = cell.querySelector("img");
-        image.src = pieceSrc(!reversiGame.black_turn);
+        image.src = pieceSrc(!lastMove.blackMove);
     }
-    updateScore(-convertedPieces.length,"undo")
+    undoScore(lastMove);
     updateScoreboard();
 }
 
@@ -201,15 +255,26 @@ function getAllCells() {
     return document.querySelector(BOARD_DIV).querySelectorAll("img");
 }
 
-function updateScore(score, mode="move") {
+function undoScore(lastMove) {
+    let score = lastMove.convertedPieces.length;
+    if(lastMove.blackMove){
+        reversiGame.blackCount = reversiGame.blackCount - score - 1;
+        reversiGame.whiteCount += score;
+    }else{
+        reversiGame.whiteCount = reversiGame.whiteCount - score - 1;
+        reversiGame.blackCount += score;
+    }
+}
+
+function updateScore(score) {
     if(reversiGame.black_turn){
         reversiGame.blackCount += score + 1;
         reversiGame.whiteCount -= score;
-        if(mode === "undo") reversiGame.blackCount -= 2;
+        //if(mode === "undo") reversiGame.blackCount -= 2;
     }else{
         reversiGame.whiteCount += score + 1;
         reversiGame.blackCount -= score;
-        if(mode === "undo") reversiGame.whiteCount -= 2;
+        //if(mode === "undo") reversiGame.whiteCount -= 2;
     }
 }
 
@@ -221,10 +286,22 @@ function updateScoreboard() {
 
 //Determine winner of the game
 function determineWinner() {
+    reversiGame.hasEnded = true;
+
     if(reversiGame.blackCount === reversiGame.whiteCount) displayTurnMessage("Draw game");
 
     if(reversiGame.blackCount > reversiGame.whiteCount) displayTurnMessage("Black is the winner!");
     else displayTurnMessage("White is the winner!");
+}
+
+function toggleHint(){
+    if(SHOW_HINT){
+        SHOW_HINT = false;
+        removePlacementHints();
+    }else{
+        SHOW_HINT = true;
+        showPlacementHints();
+    }
 }
 
 function godMode(){

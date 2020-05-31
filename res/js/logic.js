@@ -1,6 +1,5 @@
 const ALL_CELLS = document.querySelector(BOARD_DIV).querySelectorAll("td");
 
-
 /*
 
 HINT LOGIC
@@ -8,30 +7,99 @@ HINT LOGIC
 */
 function calculateValidMoves(){
     let validMovesArr = [];
-    /*
-    ALL_CELLS.forEach((cell, i) => {
+    let validFlag = true;
+
+    //if(reversiGame.emptySpace < 56 && !reversiGame.black_turn) return {"validMoves": validMovesArr, "valid": validFlag};
+
+    ALL_CELLS.forEach((cell) => {
         let coords = cell.id;
         let x = parseInt(coords.slice(-1));
         let y = coords.slice(0,1);
         let xIndex = X.indexOf(x);
         let yIndex = Y.indexOf(y);
 
+        let validLines = [];
 
+        //Return variables for each direction
+        let statusN;
+        let statusNE;
+        let statusE;
+        let statusSE;
+        let statusS;
+        let statusSW;
+        let statusW;
+        let statusNW;
+
+        if(checkOccupied(cell)) return; //If occupied skip check
+
+        //Skip direction check
+        yIndex <= 1 ? statusN = false :
+            statusN = checkNorth(xIndex,yIndex);
+        yIndex <= 1 ? statusNE = false :  xIndex >= 6 ? statusNE = false :
+            statusNE = checkNorthEast(xIndex,yIndex);
+        xIndex >= 6 ? statusE = false :
+            statusE = checkEast(xIndex,yIndex);
+        yIndex >= 6 ? statusSE = false : xIndex >= 6 ? statusSE = false :
+            statusSE = checkSouthEast(xIndex,yIndex);
+        yIndex >= 6 ? statusS = false :
+            statusS = checkSouth(xIndex,yIndex);
+        xIndex <= 1 ? statusSW = false : yIndex >= 6 ? statusSW = false :
+            statusSW = checkSouthWest(xIndex,yIndex);
+        xIndex <= 1 ? statusW = false :
+            statusW = checkWest(xIndex,yIndex);
+        xIndex <= 1 ? statusNW = false : yIndex <= 1 ? statusNW = false :
+            statusNW = checkNorthWest(xIndex,yIndex);
+
+
+
+
+        if(!(statusN || statusNE || statusE || statusSE || statusS || statusSW || statusW || statusNW)) return; //Skip array push if not valid for all
+
+        if(statusN) validLines.push(statusN);
+        if(statusNE) validLines.push(statusNE);
+        if(statusE) validLines.push(statusE);
+        if(statusSE) validLines.push(statusSE);
+        if(statusS) validLines.push(statusS);
+        if(statusSW) validLines.push(statusSW);
+        if(statusW) validLines.push(statusW);
+        if(statusNW) validLines.push(statusNW);
+
+        let coordsInfo = {"coords":coords,"validLines": validLines};
+        validMovesArr.push(coordsInfo);
     });
-    */
+
+    if(validMovesArr.length === 0) validFlag = false;
+
+    return {"validMoves": validMovesArr, "valid": validFlag};
 }
 
 function showPlacementHints(){
-    console.log(ALL_CELLS);
+    //console.log(validMovesInfo.validMoves);
+    let validCells= validMovesInfo.validMoves;
+    if(!validCells) return;
+    validCells.forEach((moves) => {
+        generateHint(moves.coords);
+    });
+}
+
+function generateHint(cellid) {
+    generatePiece(cellid,pieceSrc(reversiGame.black_turn));
+    let cellImage = document.querySelector(`#${cellid} img`);
+    cellImage.className = "hint";
+}
+
+function removePlacementHints(){
+    let allCellsImage = document.querySelector(BOARD_DIV).querySelectorAll("img");
+    allCellsImage.forEach((cellImage) => {
+        if(cellImage.className === "hint")
+            cellImage.remove();
+    });
 }
 
 
-let VALID_FLAG = false;
-let CONVERTED_PIECES_COORDS = [];
 
 
-
-
+/*
 function validMove(cell){
     let coords = cell.id;
     let x = parseInt(coords.slice(-1));
@@ -50,102 +118,99 @@ function validMove(cell){
 
 
     yIndex <= 1 ? "" :
-        statusN = checkAdjacentNorth(xIndex,yIndex);
+        statusN = checkNorth(xIndex,yIndex);
     yIndex <= 1 ? "" :  xIndex >= 6 ? "" :
-        statusNE = checkAdjacentNorthEast(xIndex,yIndex);
+        statusNE = checkNorthEast(xIndex,yIndex);
     xIndex >= 6 ? "" :
-        statusE = checkAdjacentEast(xIndex,yIndex);
+        statusE = checkEast(xIndex,yIndex);
     yIndex >= 6 ? "" : xIndex >= 6 ? "" :
-        statusSE = checkAdjacentSouthEast(xIndex,yIndex);
+        statusSE = checkSouthEast(xIndex,yIndex);
     yIndex >= 6 ? "" :
-        statusS = checkAdjacentSouth(xIndex,yIndex);
+        statusS = checkSouth(xIndex,yIndex);
     xIndex <= 1 ? "" : yIndex >= 6 ? "" :
-        statusSW = checkAdjacentSouthWest(xIndex,yIndex);
+        statusSW = checkSouthWest(xIndex,yIndex);
     xIndex <= 1 ? "" :
-        statusW = checkAdjacentWest(xIndex,yIndex);
+        statusW = checkWest(xIndex,yIndex);
     xIndex <= 1 ? "" : yIndex <= 1 ? "" :
-        statusNW = checkAdjacentNorthWest(xIndex,yIndex);
+        statusNW = checkNorthWest(xIndex,yIndex);
 
 
 
     return VALID_FLAG;
     //Return array containing true false and another array with the valid directions
 }
+*/
 
-function checkAdjacentNorth(xIndex,yIndex) {
+function checkNorth(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,0,-1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentNorthEast(xIndex,yIndex) {
+function checkNorthEast(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,1,-1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentEast(xIndex,yIndex) {
+function checkEast(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,1,0);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentSouthEast(xIndex,yIndex){
+function checkSouthEast(xIndex,yIndex){
     let cells = getDirectionCoordinates(xIndex,yIndex,1,1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentSouth(xIndex,yIndex){
+function checkSouth(xIndex,yIndex){
     let cells = getDirectionCoordinates(xIndex,yIndex,0,1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentSouthWest(xIndex,yIndex) {
+function checkSouthWest(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,-1,1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentWest(xIndex,yIndex) {
+function checkWest(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,-1,0);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
-function checkAdjacentNorthWest(xIndex,yIndex) {
+function checkNorthWest(xIndex,yIndex) {
     let cells = getDirectionCoordinates(xIndex,yIndex,-1,-1);
     let adjacentCell = document.querySelector(`#${cells[0]}`);
     let adjacentPieceColor = checkPieceColor(adjacentCell);
 
-    if (checkConvertPotential(adjacentPieceColor)) return;
-    checkCovert(cells, adjacentPieceColor);
-}
-
-function convertLines(){
-    //loop throught valid directions
+    if (checkConvertPotential(adjacentPieceColor)) return false;
+    return getConvertingCells(cells, adjacentPieceColor);
 }
 
 function getDirectionCoordinates(xIndex,yIndex,xIncrement,yIncrement) {
@@ -196,26 +261,65 @@ function checkConvertPotential(adjacentPieceColor) {
     return adjacentPieceColor == undefined || reversiGame.black_turn && adjacentPieceColor === "black" || !reversiGame.black_turn && adjacentPieceColor === "white";
 }
 
-function checkCovert(cells,adjacentPieceColor) {
+function getConvertingCells(cells,adjacentPieceColor) {
     for (let i = 1; i < cells.length; i++) {
         let cell = document.querySelector(`#${cells[i]}`)
         let pieceColor = checkPieceColor(cell);
 
         if (pieceColor === undefined) break;
         else if(pieceColor !== adjacentPieceColor){
-            convertPieces(cells, i);
-            VALID_FLAG = true;
-            break;
+            return cells.slice(0,i);
         }
+    }
+    return false;
+}
+
+//Fetch convertable lines, turns the array into a 1D array as well
+function getConvertLines(coordinates){
+    let validMovesArr;
+    let validMovesSingleArr = [];
+    for (let i = 0; i < validMovesInfo.validMoves.length; i++) {
+        if(validMovesInfo.validMoves[i].coords === coordinates) validMovesArr = validMovesInfo.validMoves[i].validLines;
+    }
+
+    for (let i = 0; i < validMovesArr.length; i++) {
+        let line = validMovesArr[i];
+        for (let j = 0; j < line.length; j++) {
+            let coords = line[j];
+            validMovesSingleArr.push(coords);
+        }
+    }
+    return validMovesSingleArr;
+}
+
+function convertLines(convLines){
+    for (let i = 0; i < convLines.length; i++) {
+        let cell = document.querySelector(`#${convLines[i]}`);
+        let image = cell.querySelector("img");
+        image.src = pieceSrc(reversiGame.black_turn);
     }
 }
 
-function convertPieces(cells,lastIndex){
-    for (let i = 0; i < lastIndex; i++) {
+/*
+function convertPieces(cells){
+    for (let i = 0; i < cells.length; i++) {
         let cell = document.querySelector(`#${cells[i]}`);
         let image = cell.querySelector("img");
         image.src = pieceSrc(reversiGame.black_turn);
 
-        CONVERTED_PIECES_COORDS.push(cell.id);
     }
 }
+*/
+
+/*
+if(cell.id === "F4"){
+    console.log(statusN);
+    console.log(statusNE);
+    console.log(statusE);
+    console.log(statusSE);
+    console.log(statusS);
+    console.log(statusSW);
+    console.log(statusW);
+    console.log(statusNW);
+}
+*/

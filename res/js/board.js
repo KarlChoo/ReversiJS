@@ -86,6 +86,8 @@ function generateMenu(){
         <h5>Black: <span id="blackScoreDisplay">0</span></h5>
         <h5>White: <span id="whiteScoreDisplay">0</span></h5>
 
+        <div class="mb-2"><input type="checkbox" checked id="hintCheckbox"> Show Hint</div>
+
         <div id="turnMessage" class="alert alert-primary" role="alert" style="bottom: 0px;">
             Welcome to Reversi!
         </div>
