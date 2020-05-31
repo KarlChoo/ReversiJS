@@ -9,6 +9,7 @@ function calculateValidMoves(){
     let validMovesArr = [];
     let validFlag = true;
 
+    //Test for no moves white
     //if(reversiGame.emptySpace < 56 && !reversiGame.black_turn) return {"validMoves": validMovesArr, "valid": validFlag};
 
     ALL_CELLS.forEach((cell) => {
@@ -83,7 +84,7 @@ function showPlacementHints(){
 }
 
 function generateHint(cellid) {
-    generatePiece(cellid,pieceSrc(reversiGame.black_turn));
+    if(!checkOccupied(document.querySelector(`#${cellid}`))) generatePiece(cellid,pieceSrc(reversiGame.black_turn));
     let cellImage = document.querySelector(`#${cellid} img`);
     cellImage.className = "hint";
 }

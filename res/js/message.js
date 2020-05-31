@@ -24,3 +24,7 @@ function displayPlayerTurn(){
 
     displayTurnMessage(`${color}'s turn to move.`,"primary");
 }
+
+/*
+  When undo without hint, then click hint, will bug
+*/

@@ -1,6 +1,6 @@
 let GOD_MODE = false;
 let SHOW_HINT = true;
-let VS_AI = false;
+let VS_AI = true;
 //PIECE SRC
 const BLACK_PIECE_SRC = "res/images/blackpiece.png";
 const WHTIE_PIECE_SRC = "res/images/whitepiece.png";
@@ -63,7 +63,7 @@ function initalizeBoard(player_turn){
 //function when player makes a move
 function playerMove(cell) {
     if(VS_AI && !reversiGame.black_turn){
-        displaySystemMessage("It is not your turn","danger");
+        displaySystemMessage("It is not your turn yet!","danger");
         return;
     }
 
@@ -128,6 +128,7 @@ function playerMove(cell) {
             displayPlayerTurn();
             validMovesInfo = calculateValidMoves();
             if(SHOW_HINT) showPlacementHints();
+            if(VS_AI) return; //Dont let the AI make your move
         }else{
             displaySystemMessage(`Both players have no possible moves! Game has ended.`,"warning");
             determineWinner();
@@ -135,7 +136,7 @@ function playerMove(cell) {
         }
     }
 
-    //if(VS_AI) moveAI(); //AI moves
+    if(VS_AI) moveAI(); //AI moves
 }
 
 function checkValid(cell) {
@@ -220,6 +221,7 @@ function resetGameState() {
 
 //Undo a move made
 function undoMove() {
+    if(VS_AI && !reversiGame.black_turn) return;
     if(reversiGame.hasEnded) return;
     if(!reversiGame.isOngoing) return; //Check if game is going on
     if(reversiGame.moveLog.length == 0) return; //Check if there is a previous move
@@ -239,6 +241,26 @@ function undoMove() {
     removePlacementHints();
     validMovesInfo = calculateValidMoves(); //calculate valid moves
     showPlacementHints(); //Display hints for the user
+
+    if(VS_AI){
+        if(reversiGame.moveLog.length == 0) return;
+        let lastMove = reversiGame.moveLog.pop(); //Return the last move made
+
+        document.querySelector(`#${lastMove.coordinates}`).innerHTML = ""; //Remove piece from the cell from last move
+        reversiGame.black_turn = !reversiGame.black_turn; //Change players turn
+        displayPlayerTurn();
+
+        let movesArr = document.querySelector(GAMELOG_ID).querySelectorAll("option");
+        document.querySelector(GAMELOG_ID).removeChild(movesArr[movesArr.length-1]);
+        document.querySelector(GAMELOG_ID).selectedIndex = document.querySelector(GAMELOG_ID).length - 1;
+
+        undoPieces(lastMove);
+        reversiGame.emptySpace++;
+
+        removePlacementHints();
+        validMovesInfo = calculateValidMoves(); //calculate valid moves
+        showPlacementHints(); //Display hints for the user
+    }
 }
 
 function undoPieces(lastMove){
@@ -295,6 +317,13 @@ function determineWinner() {
 }
 
 function toggleHint(){
+    if(VS_AI && !reversiGame.black_turn) {
+        let checkbox = document.querySelector("#hintCheckbox");
+        displaySystemMessage("Can't toggle hint when it's not your turn!","danger");
+        if(checkbox.checked) checkbox.checked = false;
+        else checkbox.checked = true;
+        return;
+    }
     if(SHOW_HINT){
         SHOW_HINT = false;
         removePlacementHints();
